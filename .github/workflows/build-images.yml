@@ -1,13 +1,13 @@
-name: Halium 13 images
+name: Halium 11 images
 
 on:
- # pull_request:
- # push:
-  #  paths:
-   #   - '*.sh'
+  pull_request:
+  push:
+    paths:
+      - '*.sh'
       - deviceinfo
-   #   - overlay/**
-  #    - .github/workflows/build-images.yml
+      - overlay/**
+      - .github/workflows/build-images.yml
   workflow_dispatch:
     inputs:
       rootfs_url:
@@ -19,11 +19,11 @@ on:
         required: true
         type: string
       halium_url:
-        description: Immutable URL of Halium 13 generic arm64 tar.xz
+        description: Immutable URL of Halium 11 generic arm64 tar.xz
         required: true
         type: string
       halium_sha256:
-        description: Trusted SHA256 of the Halium 13 generic archive
+        description: Trusted SHA256 of the Halium 11 generic archive
         required: true
         type: string
       ramdisk_url:
@@ -108,7 +108,7 @@ jobs:
       - name: Upload images and adaptation archive
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: halium-13-r8q-${{ github.sha }}
+          name: halium-11-r8q-${{ github.sha }}
           path: |
             out/*.img
             out/device_r8q.tar.xz

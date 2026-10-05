@@ -1,13 +1,17 @@
 # Samsung Galaxy S20 FE (r8q)
 
-Halium 13 / Ubuntu Touch device configuration for the Snapdragon Galaxy S20 FE
+Halium 11 / Ubuntu Touch device configuration for the Snapdragon Galaxy S20 FE
 (SM8250, codename `r8q`). This does not target the Exynos `r8s` variant.
 
 ## Build
 
 The root `deviceinfo` is the configuration consumed by the Halium generic
-adaptation build tools. It selects the r8q Halium 13 kernel source and
-`vendor/halium-13_defconfig`; the matching kernel tree is
+adaptation build tools. The generic target and boot metadata use Halium 11.
+The kernel remains pinned to the available r8q-specific source tree and
+`vendor/halium-13_defconfig`; that source's branch name does not change with the
+generic Halium target. Android 11 vendor firmware is required, and kernel/module
+compatibility with the selected firmware must be confirmed on-device. The kernel
+tree is
 [droidian-S20FE/android_kernel_samsung_sm8250](https://github.com/droidian-S20FE/android_kernel_samsung_sm8250),
 branch `Halium-13.0-minimal`.
 
@@ -28,7 +32,7 @@ in `build/`, and kernel revision
 The tools are an accessible copy of the
 [GitLab project](https://gitlab.com/ubports/porting/community-ports/halium-generic-adaptation-build-tools);
 GitLab was inaccessible during this change, so this is **not** a claim about
-its current HEAD. This snapshot explicitly supports Halium 13, Focal, local
+its current HEAD. This snapshot explicitly supports Halium 11, Focal, local
 prebuilt ramdisks, and release overlays. An existing, different or dirty tools/
 kernel checkout fails instead of silently building another version; move it
 aside to fetch the pinned version.
@@ -50,7 +54,7 @@ Supply three trusted, local inputs and their independently verified SHA256s:
 - `ROOTFS_ARCHIVE`: Ubuntu Touch **Focal arm64 hybris** rootfs `.tar.gz`, with
   root-level `etc/`, `usr/`, usrmerge (`lib -> usr/lib`), and
   `usr/libexec/lxc-android-config/mount-halium-overlay`.
-- `HALIUM_ARCHIVE`: **Halium 13 arm64** generic adaptation `.tar.xz`, with the
+- `HALIUM_ARCHIVE`: **Halium 11 arm64** generic adaptation `.tar.xz`, with the
   OTA `system/` prefix and the Android image in `system/var/lib/lxc/android/`.
 - `RAMDISK_ARCHIVE`: Halium **dynparts arm64 gzip initrd**, used to build boot.img.
   The wrapper replaces upstream's unverified, mutable cached initrd with this
@@ -58,7 +62,7 @@ Supply three trusted, local inputs and their independently verified SHA256s:
 
 For locating these inputs, the inspected tools' `prepare-fake-ota.sh` uses the
 UBports `ubuntu-touch-rootfs/ubports%252Ffocal` job's
-`ubuntu-touch-android9plus-rootfs-arm64.tar.gz`, the `generic_arm64/halium-13.0`
+`ubuntu-touch-android9plus-rootfs-arm64.tar.gz`, the `generic_arm64/halium-11.0`
 job's `halium_halium_arm64.tar.xz`, and the Halium initramfs `dynparts` release.
 Resolve a **specific build/release URL** and record its trusted hash rather
 than relying on `lastSuccessfulBuild`. Downloads/vendor blobs are not supplied
@@ -67,7 +71,7 @@ by this repository.
 ```bash
 export ROOTFS_ARCHIVE=/absolute/path/focal-arm64.tar.gz
 export ROOTFS_SHA256=<trusted-rootfs-sha256>
-export HALIUM_ARCHIVE=/absolute/path/halium-13-arm64.tar.xz
+export HALIUM_ARCHIVE=/absolute/path/halium-11-arm64.tar.xz
 export HALIUM_SHA256=<trusted-halium-sha256>
 export RAMDISK_ARCHIVE=/absolute/path/initrd.img-touch-arm64
 export RAMDISK_SHA256=<trusted-initrd-sha256>
@@ -129,7 +133,7 @@ rootfs. This is a local development image, not a signed OTA/update channel.
 
 ### GitHub Actions and checks
 
-Run **Actions → Halium 13 images → Run workflow**, supplying HTTPS URLs and
+Run **Actions → Halium 11 images → Run workflow**, supplying HTTPS URLs and
 trusted SHA256s for the three inputs. It builds using the same entry point
 and uploads images, device adaptation and checksums for 14 days. Pushes/PRs
 run shell checks and small fixture-based packaging/ext4 tests, without
@@ -158,7 +162,7 @@ bash tests/build-flow.sh
   root filesystem. A successful kernel/image build does not by itself verify
   that the device boots or that its hardware works; test on the intended
   firmware and device before flashing.
-- A compatible r8q Android 13 vendor/firmware installation is still required.
+- A compatible r8q Android 11 vendor/firmware installation is still required.
   The generic Halium image is not Samsung vendor firmware. Stock modules must
   match the built kernel's ABI/signature policy; copying them cannot repair an
   ABI mismatch. Boot acceptance/AVB and userdata installation require r8q
@@ -167,9 +171,9 @@ bash tests/build-flow.sh
   and [kernel source](https://github.com/mukahraman/kernel_samsung_sm8250)
   share SM8250, but the documented build targets `gts7xlwifi`, Halium 11/API 30,
   and Droidian. Its tablet config, DTBO, signing keys and flashing instructions
-  are not substituted for the r8q Halium 13/Focal target.
+  are not substituted for the r8q Halium 11/Focal target.
 - The [Droidian recipes](https://github.com/mukahraman/droidian-recipes) are useful
   metadata-preserving assembly references, but their supplied recipe is API 30/
   Debian Trixie/Phosh for `gts7xlwifi`. The kernel has r8q fragments, not a complete
   r8q image recipe; a Droidian migration needs phone-specific adaptation and must
-  not inherit the Wi-Fi tablet's disabled modem stack. This fix retains Focal.
+  not inherit the Wi-Fi tablet's disabled modem stack. This configuration retains Focal.

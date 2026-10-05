@@ -5,7 +5,7 @@ deviceinfo_name="Samsung Galaxy S20 FE"
 deviceinfo_manufacturer="Samsung"
 deviceinfo_codename="r8q"
 deviceinfo_arch="aarch64"
-deviceinfo_halium_version="13"
+deviceinfo_halium_version="11"
 deviceinfo_ubuntu_touch_release="focal"
 
 ##########
@@ -15,6 +15,8 @@ deviceinfo_kernel_source="https://github.com/droidian-S20FE/android_kernel_samsu
 deviceinfo_kernel_source_branch="Halium-13.0-minimal"
 deviceinfo_kernel_defconfig="vendor/halium-13_defconfig"
 deviceinfo_kernel_clang_compile="true"
+deviceinfo_kernel_clang_branch="master-kernel-build-2022"
+deviceinfo_kernel_clang_revision="r450784e"
 deviceinfo_kernel_use_lld="true"
 deviceinfo_kernel_image_name="Image"
 
@@ -22,8 +24,8 @@ deviceinfo_kernel_image_name="Image"
 # Boot image
 
 deviceinfo_bootimg_header_version="2"
-deviceinfo_bootimg_os_version="13.0.0"
-deviceinfo_bootimg_os_patch_level="2023-04"
+deviceinfo_bootimg_os_version="11"
+deviceinfo_bootimg_os_patch_level="2020-12"
 deviceinfo_bootimg_qcdt="true"
 deviceinfo_bootimg_partition_size="67108864"
 deviceinfo_bootimg_board="SRPUB26A007"
