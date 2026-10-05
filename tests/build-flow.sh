@@ -2,6 +2,8 @@
 set -euo pipefail
 
 repo="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+grep -q '^deviceinfo_halium_version="11"$' "$repo/deviceinfo"
+grep -q '^deviceinfo_bootimg_os_version="11"$' "$repo/deviceinfo"
 fixture="$(mktemp -d)"
 trap 'rm -rf -- "$fixture"' EXIT
 mkdir -p "$fixture/tools" "$fixture/work/tmp/partitions" "$fixture/out"
@@ -58,7 +60,7 @@ import os
 import sys
 os.setxattr(sys.argv[1], "user.r8q-test", b"preserved")
 PY
-printf 'Halium 13 Android rootfs fixture\n' > "$generic/system/var/lib/lxc/android/system.img"
+printf 'Halium 11 Android rootfs fixture\n' > "$generic/system/var/lib/lxc/android/system.img"
 printf 'must be replaced by device boot\n' > "$generic/partitions/boot.img"
 printf 'preserved generic lib file\n' > "$generic/system/lib/generic-file"
 tar --xattrs --acls -cf "$fixture/rootfs.tar" --owner=0 --group=0 -C "$base" .

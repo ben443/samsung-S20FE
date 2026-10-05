@@ -52,7 +52,7 @@ verify_input "$ramdisk" "${RAMDISK_SHA256:?Set RAMDISK_SHA256}"
 gzip -t "$ramdisk"
 if [[ -z "$mode" ]]; then
     ROOTFS_ARCHIVE="$(realpath -m -- "${ROOTFS_ARCHIVE:?Set ROOTFS_ARCHIVE to a Focal arm64 rootfs tar.gz}")"
-    HALIUM_ARCHIVE="$(realpath -m -- "${HALIUM_ARCHIVE:?Set HALIUM_ARCHIVE to the Halium 13 arm64 generic tar.xz}")"
+    HALIUM_ARCHIVE="$(realpath -m -- "${HALIUM_ARCHIVE:?Set HALIUM_ARCHIVE to the Halium 11 arm64 generic tar.xz}")"
     export ROOTFS_ARCHIVE HALIUM_ARCHIVE
     verify_input "$ROOTFS_ARCHIVE" "${ROOTFS_SHA256:?Set ROOTFS_SHA256}"
     verify_input "$HALIUM_ARCHIVE" "${HALIUM_SHA256:?Set HALIUM_SHA256}"
