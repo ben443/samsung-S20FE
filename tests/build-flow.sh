@@ -43,7 +43,7 @@ done
 base="$fixture/base"
 generic="$fixture/generic"
 mkdir -p "$base/etc" "$base/usr/libexec/lxc-android-config" "$base/usr/lib" \
-    "$generic/system/var/lib/lxc/android" "$generic/partitions"
+    "$generic/system/var/lib/lxc/android" "$generic/system/lib" "$generic/partitions"
 ln -s usr/lib "$base/lib"
 printf 'VERSION_ID="20.04"\n' > "$base/etc/os-release"
 cat > "$base/usr/libexec/lxc-android-config/mount-halium-overlay" <<'EOF'
@@ -60,6 +60,7 @@ os.setxattr(sys.argv[1], "user.r8q-test", b"preserved")
 PY
 printf 'Halium 13 Android rootfs fixture\n' > "$generic/system/var/lib/lxc/android/system.img"
 printf 'must be replaced by device boot\n' > "$generic/partitions/boot.img"
+printf 'preserved generic lib file\n' > "$generic/system/lib/generic-file"
 tar --xattrs --acls -cf "$fixture/rootfs.tar" --owner=0 --group=0 -C "$base" .
 tar -rf "$fixture/rootfs.tar" --owner=42 --group=42 -C "$base" etc/service-file
 gzip "$fixture/rootfs.tar"
@@ -71,20 +72,22 @@ export ROOTFS_SHA256 HALIUM_SHA256
 bash "$repo/build-rootfs.sh" "$fixture/out"
 cmp "$fixture/out/boot.img" "$fixture/work/tmp/partitions/boot.img"
 for path in /etc/base-file /etc/gbinder.conf \
+    /usr/lib/generic-file \
     /usr/libexec/lxc-android-config/mount-halium-overlay \
     /usr/libexec/lxc-android-config/mount-halium-overlay.generic \
     /usr/lib/modules/test-release/kernel/drivers/test.ko \
     /usr/share/halium-overlay/android/vendor/etc/init/vndservicemanager.rc \
     /var/lib/lxc/android/android-rootfs.img; do
-    debugfs -R "stat $path" "$fixture/out/ubuntu.img" 2>/dev/null | grep -q 'User: *0'
+    debugfs -R "stat $path" "$fixture/out/ubuntu.img" 2>/dev/null | grep 'User: *0' >/dev/null
 done
-debugfs -R 'stat /etc/service-file' "$fixture/out/ubuntu.img" 2>/dev/null | grep -q 'User: *42'
-debugfs -R 'ea_list /etc/base-file' "$fixture/out/ubuntu.img" 2>/dev/null | grep -q 'user.r8q-test'
+debugfs -R 'stat /lib' "$fixture/out/ubuntu.img" 2>/dev/null | grep 'Type: symlink' >/dev/null
+debugfs -R 'stat /etc/service-file' "$fixture/out/ubuntu.img" 2>/dev/null | grep 'User: *42' >/dev/null
+debugfs -R 'ea_list /etc/base-file' "$fixture/out/ubuntu.img" 2>/dev/null | grep 'user.r8q-test' >/dev/null
 (cd "$fixture/out" && sha256sum --check SHA256SUMS)
 debugfs -R "dump /usr/libexec/lxc-android-config/mount-halium-overlay.generic $fixture/original-consumer" \
     "$fixture/out/ubuntu.img" 2>/dev/null
 cmp "$base/usr/libexec/lxc-android-config/mount-halium-overlay" "$fixture/original-consumer"
-tar -tJf "$fixture/out/device_r8q.tar.xz" | grep -q 'mount-halium-overlay.generic'
+tar -tJf "$fixture/out/device_r8q.tar.xz" | grep 'mount-halium-overlay.generic' >/dev/null
 for exported in "$fixture/out/"*.img "$fixture/out/SHA256SUMS" "$fixture/out/device_r8q.tar.xz"; do
     [[ "$(stat -c %u "$exported")" == "${SUDO_UID:-$(id -u)}" ]]
 done

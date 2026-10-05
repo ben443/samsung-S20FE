@@ -83,7 +83,9 @@ the initrd and hash. `ROOTFS_SIZE` defaults to `4G` and can be adjusted, e.g.
 
 `build-rootfs.sh` verifies inputs then uses sudo and `mke2fs -d`, without loop
 mounts. Real privilege preserves capability xattrs that fakeroot cannot restore.
-It preserves numeric ownership, ACLs and xattrs and applies Focal, generic Halium, then device
+It preserves numeric ownership, ACLs, xattrs and the usrmerge directory symlink,
+including when a generic archive uses old-style `system/lib/` paths.
+It applies Focal, generic Halium, then device
 adaptation in that order. It renames a generic `system.img` to
 `android-rootfs.img` for Halium's system-as-root mount flow.
 It deliberately does **not** invoke upstream's development fake-OTA helper:
