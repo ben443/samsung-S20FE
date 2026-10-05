@@ -1,0 +1,113 @@
+name: Halium 13 images
+
+on:
+  pull_request:
+  push:
+    paths:
+      - '*.sh'
+      - deviceinfo
+      - overlay/**
+      - .github/workflows/build-images.yml
+  workflow_dispatch:
+    inputs:
+      rootfs_url:
+        description: Immutable URL of Ubuntu Touch Focal arm64 rootfs tar.gz
+        required: true
+        type: string
+      rootfs_sha256:
+        description: Trusted SHA256 of the Focal rootfs
+        required: true
+        type: string
+      halium_url:
+        description: Immutable URL of Halium 13 generic arm64 tar.xz
+        required: true
+        type: string
+      halium_sha256:
+        description: Trusted SHA256 of the Halium 13 generic archive
+        required: true
+        type: string
+      ramdisk_url:
+        description: Immutable URL of Halium dynparts arm64 gzip initrd
+        required: true
+        type: string
+      ramdisk_sha256:
+        description: Trusted SHA256 of the Halium initrd
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - name: Check shell scripts and device configuration
+        run: |
+          bash -n build.sh package-device.sh build-rootfs.sh deviceinfo tests/build-flow.sh
+          bash -n overlay/system/usr/libexec/lxc-android-config/mount-halium-overlay
+          shellcheck build.sh package-device.sh build-rootfs.sh tests/build-flow.sh \
+            overlay/system/usr/libexec/lxc-android-config/mount-halium-overlay
+          ./build.sh --help
+      - name: Test module packaging and rootfs assembly
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fakeroot e2fsprogs
+          bash tests/build-flow.sh
+
+  images:
+    if: github.event_name == 'workflow_dispatch'
+    needs: check
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            bc bison build-essential ca-certificates cpio curl e2fsprogs \
+            fakeroot flex git kmod libssl-dev libtinfo5 lz4 python2 python3 unzip xz-utils
+          sudo ln -sf /usr/bin/python2 /usr/local/bin/python
+      - name: Download checksum-verified inputs
+        env:
+          ROOTFS_URL: ${{ inputs.rootfs_url }}
+          ROOTFS_SHA256: ${{ inputs.rootfs_sha256 }}
+          HALIUM_URL: ${{ inputs.halium_url }}
+          HALIUM_SHA256: ${{ inputs.halium_sha256 }}
+          RAMDISK_URL: ${{ inputs.ramdisk_url }}
+          RAMDISK_SHA256: ${{ inputs.ramdisk_sha256 }}
+        run: |
+          mkdir -p inputs
+          for kind in ROOTFS HALIUM RAMDISK; do
+            url="${kind}_URL"
+            hash="${kind}_SHA256"
+            [[ "${!hash}" =~ ^[[:xdigit:]]{64}$ ]]
+            curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' \
+              "${!url}" -o "inputs/$kind"
+            printf '%s  %s\n' "${!hash}" "inputs/$kind" | sha256sum --check
+          done
+      - name: Build kernel, boot image, adaptation and Focal rootfs
+        env:
+          ROOTFS_ARCHIVE: inputs/ROOTFS
+          ROOTFS_SHA256: ${{ inputs.rootfs_sha256 }}
+          HALIUM_ARCHIVE: inputs/HALIUM
+          HALIUM_SHA256: ${{ inputs.halium_sha256 }}
+          RAMDISK_ARCHIVE: inputs/RAMDISK
+          RAMDISK_SHA256: ${{ inputs.ramdisk_sha256 }}
+        run: ./build.sh
+      - name: Upload images and adaptation archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: halium-13-r8q-${{ github.sha }}
+          path: |
+            out/*.img
+            out/device_r8q.tar.xz
+            out/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,25 @@
+#!/bin/bash
+set -euo pipefail
+
+/usr/libexec/lxc-android-config/mount-halium-overlay.generic "$@"
+
+# Upstream can choose a GSI overlay before /usr/share/halium-overlay.
+# Always apply the r8q Android adaptations after the generic overlay.
+overlay=/usr/share/halium-overlay/android
+for path in system/lib vendor/lib vendor/etc/init; do
+    [[ -d "$overlay/$path" ]] || continue
+    [[ -d "/android/$path" ]] || {
+        echo "r8q overlay target is missing: /android/$path (check vendor firmware)" >&2
+        exit 1
+    }
+    mount -t overlay -o "lowerdir=$overlay/$path:/android/$path" \
+        "r8q-${path//\//-}" "/android/$path"
+    # A prior recursive bind into LXC need not propagate newly added mounts.
+    if mountpoint -q /var/lib/lxc/android/rootfs; then
+        mount --bind "/android/$path" "/var/lib/lxc/android/rootfs/$path"
+    fi
+done
+
+if [[ -d "$overlay/system/lib/modules" ]]; then
+    mount --bind /android/system/lib/modules /usr/lib/modules
+fi

@@ -3,4 +3,4 @@ build
 ota
 images
 out
-deviceinfo
+inputs/
