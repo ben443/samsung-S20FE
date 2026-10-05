@@ -12,11 +12,11 @@ deviceinfo_ubuntu_touch_release="focal"
 # Kernel
 
 deviceinfo_kernel_source="https://github.com/droidian-S20FE/android_kernel_samsung_sm8250.git"
-deviceinfo_kernel_source_branch="Halium-13.0-minimal"
-deviceinfo_kernel_defconfig="vendor/halium-13_defconfig"
+deviceinfo_kernel_source_branch="Halium-latest"
+deviceinfo_kernel_defconfig="vendor/samsung-rq8-halium_defconfig"
 deviceinfo_kernel_clang_compile="true"
-deviceinfo_kernel_clang_branch="master-kernel-build-2022"
-deviceinfo_kernel_clang_revision="r450784e"
+deviceinfo_kernel_clang_branch="android11-gsi"
+deviceinfo_kernel_clang_revision="r383902"
 deviceinfo_kernel_use_lld="true"
 deviceinfo_kernel_image_name="Image"
 

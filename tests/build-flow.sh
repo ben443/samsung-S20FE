@@ -4,6 +4,10 @@ set -euo pipefail
 repo="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 grep -q '^deviceinfo_halium_version="11"$' "$repo/deviceinfo"
 grep -q '^deviceinfo_bootimg_os_version="11"$' "$repo/deviceinfo"
+grep -q '^deviceinfo_kernel_source_branch="Halium-latest"$' "$repo/deviceinfo"
+grep -q '^deviceinfo_kernel_defconfig="vendor/samsung-rq8-halium_defconfig"$' "$repo/deviceinfo"
+grep -q '^deviceinfo_kernel_clang_branch="android11-gsi"$' "$repo/deviceinfo"
+grep -q '^deviceinfo_kernel_clang_revision="r383902"$' "$repo/deviceinfo"
 fixture="$(mktemp -d)"
 trap 'rm -rf -- "$fixture"' EXIT
 mkdir -p "$fixture/tools" "$fixture/work/tmp/partitions" "$fixture/out"
@@ -125,7 +129,7 @@ case "$3" in
         if [[ "$2" == */build ]]; then
             echo a1099f7fff34620f66b1efb690de6e7ce1ee5002
         else
-            echo 6dff6dfa0aff47ccb03802e10bbcf63cd50076de
+            echo d222ac7454ee1e3bf728fbba1347b76397ad5702
         fi ;;
     *) exit 1 ;;
 esac
@@ -146,7 +150,7 @@ PATH="$fixture/bin:$PATH" WRAPPER_REPO="$wrapper" WRAPPER_WORK="$workspace" WRAP
     RAMDISK_ARCHIVE="$fixture/initrd.gz" RAMDISK_SHA256="$RAMDISK_SHA256" \
     bash "$wrapper/build.sh" -b "$workspace" -o "$output" -k -m
 cmp "$workspace/tmp/partitions/boot.img" "$output/boot.img"
-grep -q '^kernel 6dff6dfa0aff47ccb03802e10bbcf63cd50076de$' "$output/build-info.txt"
+grep -q '^kernel d222ac7454ee1e3bf728fbba1347b76397ad5702$' "$output/build-info.txt"
 
 runtime="$fixture/runtime"
 mkdir -p "$runtime/bin" "$runtime/usr/bin" "$runtime/usr/libexec/lxc-android-config" \

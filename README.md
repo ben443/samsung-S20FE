@@ -7,13 +7,11 @@ Halium 11 / Ubuntu Touch device configuration for the Snapdragon Galaxy S20 FE
 
 The root `deviceinfo` is the configuration consumed by the Halium generic
 adaptation build tools. The generic target and boot metadata use Halium 11.
-The kernel remains pinned to the available r8q-specific source tree and
-`vendor/halium-13_defconfig`; that source's branch name does not change with the
-generic Halium target. Android 11 vendor firmware is required, and kernel/module
-compatibility with the selected firmware must be confirmed on-device. The kernel
-tree is
+The kernel uses the r8q-specific Halium branch and device defconfig. Android 11
+vendor firmware is required, and kernel/module compatibility with the selected
+firmware must be confirmed on-device. The kernel tree is
 [droidian-S20FE/android_kernel_samsung_sm8250](https://github.com/droidian-S20FE/android_kernel_samsung_sm8250),
-branch `Halium-13.0-minimal`.
+branch `Halium-latest`, using `vendor/samsung-rq8-halium_defconfig`.
 
 Run `./build.sh` from any working directory. Paths supplied by the caller are
 resolved before switching to the device directory (upstream reads `deviceinfo`
@@ -28,7 +26,10 @@ parser incorrectly reads the next argument. Defaults are repository-local
 The wrapper pins the inspected generic-tools snapshot
 [`a1099f7`](https://github.com/Talustus/halium-generic-adaptation-build-tools/tree/a1099f7fff34620f66b1efb690de6e7ce1ee5002)
 in `build/`, and kernel revision
-[`6dff6df`](https://github.com/droidian-S20FE/android_kernel_samsung_sm8250/tree/6dff6dfa0aff47ccb03802e10bbcf63cd50076de).
+[`d222ac7`](https://github.com/droidian-S20FE/android_kernel_samsung_sm8250/tree/d222ac7454ee1e3bf728fbba1347b76397ad5702)
+from `Halium-latest`. Clang is pinned to `r383902` from `android11-gsi`, matching
+the Halium 11 toolchain selection; LLD is enabled. The kernel source's config is
+under `arch/arm64/configs/vendor/`.
 The tools are an accessible copy of the
 [GitLab project](https://gitlab.com/ubports/porting/community-ports/halium-generic-adaptation-build-tools);
 GitLab was inaccessible during this change, so this is **not** a claim about
@@ -38,9 +39,7 @@ kernel checkout fails instead of silently building another version; move it
 aside to fetch the pinned version.
 
 Use an x86_64 Ubuntu 22.04 host with the dependencies in
-`.github/workflows/build-images.yml`. Upstream selects Clang `r450784e` from
-`master-kernel-build-2022`; LLD is enabled. The kernel source's actual config
-is under `arch/arm64/configs/vendor/`, not `halium_defconfig`.
+`.github/workflows/build-images.yml`.
 Upstream still downloads some toolchains/tooling from branches. Preserve
 `workdir/downloads/` when reproducing a build; these are not bit-for-bit
 reproducible builds across arbitrary hosts and dependency updates.
