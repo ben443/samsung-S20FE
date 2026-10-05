@@ -99,6 +99,21 @@ if [[ "$mode" == -c ]]; then
 fi
 "$build_tools/build.sh" -b "$workdir" -o "$out" -k "${menuconfig[@]}"
 cp "$workdir/tmp/partitions/"*.img "$out/"
+{
+    printf 'build-tools %s\nkernel %s\nramdisk-sha256 %s\n' \
+        "$tools_revision" "$kernel_revision" "$RAMDISK_SHA256"
+    if [[ -z "$mode" ]]; then
+        printf 'rootfs-sha256 %s\nhalium-sha256 %s\n' "$ROOTFS_SHA256" "$HALIUM_SHA256"
+    fi
+    for dependency in "$workdir/downloads/"*; do
+        if [[ -d "$dependency/.git" ]]; then
+            printf '%s %s\n' "$(basename "$dependency")" "$(git -C "$dependency" rev-parse HEAD)"
+        fi
+    done
+    for compiler in "$workdir/downloads/linux-x86/"*/bin/clang; do
+        [[ ! -f "$compiler" ]] || sha256sum "$compiler"
+    done
+} > "$out/build-info.txt"
 [[ "$mode" == -k ]] && exit 0
 
 "$repo_root/package-device.sh" "$build_tools" "$workdir" "$out"

@@ -84,6 +84,10 @@ debugfs -R 'ea_list /etc/base-file' "$fixture/out/ubuntu.img" 2>/dev/null | grep
 debugfs -R "dump /usr/libexec/lxc-android-config/mount-halium-overlay.generic $fixture/original-consumer" \
     "$fixture/out/ubuntu.img" 2>/dev/null
 cmp "$base/usr/libexec/lxc-android-config/mount-halium-overlay" "$fixture/original-consumer"
+tar -tJf "$fixture/out/device_r8q.tar.xz" | grep -q 'mount-halium-overlay.generic'
+for exported in "$fixture/out/"*.img "$fixture/out/SHA256SUMS" "$fixture/out/device_r8q.tar.xz"; do
+    [[ "$(stat -c %u "$exported")" == "${SUDO_UID:-$(id -u)}" ]]
+done
 if ROOTFS_SHA256="$(printf '%064d' 0)" bash "$repo/build-rootfs.sh" "$fixture/out"; then
     echo "Incorrect checksum was accepted!" >&2
     exit 1
@@ -100,6 +104,79 @@ mkdir -p "$fixture/no-modules/tmp/system" "$fixture/no-modules/tmp/partitions" "
 cp "$fixture/work/tmp/partitions/boot.img" "$fixture/no-modules/tmp/partitions/"
 bash "$repo/package-device.sh" "$fixture/tools" "$fixture/no-modules" "$fixture/no-modules-out"
 [[ ! -d "$fixture/no-modules/tmp/system/usr/lib/modules" ]]
+
+wrapper="$fixture/wrapper source"
+workspace="$fixture/wrapper work"
+output="$fixture/wrapper out"
+mkdir -p "$wrapper/build" "$workspace/downloads/android_kernel_samsung_sm8250/.git" "$fixture/bin"
+cp "$repo/build.sh" "$wrapper/build.sh"
+cat > "$fixture/bin/git" <<'EOF'
+#!/bin/bash
+set -euo pipefail
+[[ "$1" == -C ]]
+case "$3" in
+    status) exit 0 ;;
+    rev-parse)
+        if [[ "$2" == */build ]]; then
+            echo a1099f7fff34620f66b1efb690de6e7ce1ee5002
+        else
+            echo 6dff6dfa0aff47ccb03802e10bbcf63cd50076de
+        fi ;;
+    *) exit 1 ;;
+esac
+EOF
+cat > "$wrapper/build/build.sh" <<'EOF'
+#!/bin/bash
+set -euo pipefail
+[[ "$PWD" == "$WRAPPER_REPO" ]]
+[[ "$1" == -b && "$3" == -o && "$5" == -k && "$6" == -m ]]
+[[ "$2" == "$WRAPPER_WORK" && "$4" == "$WRAPPER_OUT" ]]
+mkdir -p "$2/tmp/partitions"
+printf 'wrapper boot fixture\n' > "$2/tmp/partitions/boot.img"
+EOF
+chmod +x "$fixture/bin/git" "$wrapper/build/build.sh"
+printf 'initrd fixture\n' | gzip > "$fixture/initrd.gz"
+RAMDISK_SHA256="$(sha256sum "$fixture/initrd.gz" | cut -d' ' -f1)"
+PATH="$fixture/bin:$PATH" WRAPPER_REPO="$wrapper" WRAPPER_WORK="$workspace" WRAPPER_OUT="$output" \
+    RAMDISK_ARCHIVE="$fixture/initrd.gz" RAMDISK_SHA256="$RAMDISK_SHA256" \
+    bash "$wrapper/build.sh" -b "$workspace" -o "$output" -k -m
+cmp "$workspace/tmp/partitions/boot.img" "$output/boot.img"
+grep -q '^kernel 6dff6dfa0aff47ccb03802e10bbcf63cd50076de$' "$output/build-info.txt"
+
+runtime="$fixture/runtime"
+mkdir -p "$runtime/bin" "$runtime/usr/bin" "$runtime/usr/libexec/lxc-android-config" \
+    "$runtime/android/system/lib" "$runtime/android/vendor/lib" "$runtime/android/vendor/etc/init" \
+    "$runtime/usr/share/halium-overlay/android/system/lib/modules" \
+    "$runtime/usr/share/halium-overlay/android/vendor/lib/modules" \
+    "$runtime/usr/share/halium-overlay/android/vendor/etc/init"
+cp /bin/bash "$runtime/bin/"
+while IFS= read -r library; do
+    cp -L --parents "$library" "$runtime/"
+done < <(ldd /bin/bash | awk '$2 == "=>" {print $3} /ld-linux/ {print $1}')
+cp "$repo/overlay/system/usr/libexec/lxc-android-config/mount-halium-overlay" \
+    "$runtime/usr/libexec/lxc-android-config/"
+cat > "$runtime/usr/libexec/lxc-android-config/mount-halium-overlay.generic" <<'EOF'
+#!/bin/bash
+echo generic >> /mount.log
+EOF
+cat > "$runtime/usr/bin/mount" <<'EOF'
+#!/bin/bash
+printf 'mount %s\n' "$*" >> /mount.log
+EOF
+printf '#!/bin/bash\nexit 0\n' > "$runtime/usr/bin/mountpoint"
+chmod +x "$runtime/usr/bin/"* "$runtime/usr/libexec/lxc-android-config/"*
+sudo chroot "$runtime" /usr/libexec/lxc-android-config/mount-halium-overlay
+mapfile -t mounts < "$runtime/mount.log"
+[[ "${mounts[0]}" == generic && "${#mounts[@]}" == 8 ]]
+grep -Fq 'mount --bind /android/vendor/lib /var/lib/lxc/android/rootfs/vendor/lib' "$runtime/mount.log"
+grep -Fq 'mount --bind /android/system/lib/modules /usr/lib/modules' "$runtime/mount.log"
+rm -rf "$runtime/android/vendor/lib"
+if sudo chroot "$runtime" /usr/libexec/lxc-android-config/mount-halium-overlay 2>"$fixture/missing-target"; then
+    echo "Missing vendor overlay target was silently accepted!" >&2
+    exit 1
+fi
+grep -q 'r8q overlay target is missing' "$fixture/missing-target"
+
 "$repo/build.sh" --help
 if "$repo/build.sh" positional-output || "$repo/build.sh" -b || "$repo/build.sh" -c -k ||
     "$repo/build.sh" -b / || "$repo/build.sh" -b "$repo/build"; then

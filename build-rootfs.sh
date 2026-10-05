@@ -36,8 +36,17 @@ consumer="$stage/system/usr/libexec/lxc-android-config/mount-halium-overlay"
     echo "Expected an unwrapped Focal mount-halium-overlay consumer." >&2
     exit 1
 }
-mv "$consumer" "$consumer.generic"
+mv "$consumer" "$stage/generic-consumer"
 tar --extract --xz --file "$out/device_r8q.tar.xz" --numeric-owner --xattrs --xattrs-include='*' --acls -C "$stage"
+cp -a "$stage/generic-consumer" "$consumer.generic"
+cmp "$repo_root/overlay/system/usr/libexec/lxc-android-config/mount-halium-overlay" "$consumer"
+# Export a self-contained adaptation archive for this exact Focal input too.
+mkdir "$stage/device"
+tar --extract --xz --file "$out/device_r8q.tar.xz" --numeric-owner -C "$stage/device"
+cp -a "$stage/generic-consumer" \
+    "$stage/device/system/usr/libexec/lxc-android-config/mount-halium-overlay.generic"
+tar --create --xz --file "$out/device_r8q.tar.xz" --owner=0 --group=0 --xattrs --acls \
+    -C "$stage/device" system partitions
 android="$stage/system/var/lib/lxc/android"
 if [[ -f "$android/system.img" && ! -e "$android/android-rootfs.img" ]]; then
     mv "$android/system.img" "$android/android-rootfs.img"
@@ -63,4 +72,4 @@ cp "$stage/partitions/"*.img "$out/"
     cd "$out"
     sha256sum ./*.img device_r8q.tar.xz > SHA256SUMS
 )
-chown "${SUDO_UID:-0}:${SUDO_GID:-0}" "$out/ubuntu.img" "$out/SHA256SUMS"
+chown "${SUDO_UID:-0}:${SUDO_GID:-0}" "$out/"*.img "$out/SHA256SUMS" "$out/device_r8q.tar.xz"

@@ -40,6 +40,8 @@ is under `arch/arm64/configs/vendor/`, not `halium_defconfig`.
 Upstream still downloads some toolchains/tooling from branches. Preserve
 `workdir/downloads/` when reproducing a build; these are not bit-for-bit
 reproducible builds across arbitrary hosts and dependency updates.
+`out/build-info.txt` records source/dependency Git revisions, input hashes, and
+the downloaded Clang binary hash so a build's actual inputs can be audited.
 
 ### Full image build
 
@@ -115,6 +117,8 @@ rootfs. This is a local development image, not a signed OTA/update channel.
   This prevents upstream's first-overlay-wins selection (GSI, `/opt`, then
   `/usr/share`) from silently omitting the device files. Missing Android targets
   fail the mount hook with a firmware diagnostic instead of skipping files.
+  The final device archive also includes the preserved helper from the exact
+  supplied Focal input; use it only with that matching rootfs.
 - Header-v2 `boot.img` contains the kernel, included r8q DTB and supplied Halium
   initrd. Normal post-mount modules and adaptation files belong in the rootfs,
   **not** a fictional header-v2 `vendor_boot.img`. If a future config needs
