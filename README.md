@@ -49,7 +49,7 @@ the downloaded Clang binary hash so a build's actual inputs can be audited.
 
 ### Full image build
 
-Supply three trusted, local inputs and their independently verified SHA256s:
+For local builds, supply three trusted inputs and their independently verified SHA256s:
 
 - `ROOTFS_ARCHIVE`: Ubuntu Touch **Focal arm64 hybris** rootfs `.tar.gz`, with
   root-level `etc/`, `usr/`, usrmerge (`lib -> usr/lib`), and
@@ -60,10 +60,11 @@ Supply three trusted, local inputs and their independently verified SHA256s:
   The wrapper replaces upstream's unverified, mutable cached initrd with this
   verified input on every invocation.
 
-For locating these inputs, the inspected tools' `prepare-fake-ota.sh` uses the
-UBports `ubuntu-touch-rootfs/ubports%252Ffocal` job's
-`ubuntu-touch-android9plus-rootfs-arm64.tar.gz`, the `generic_arm64/halium-11.0`
-job's `halium_halium_arm64.tar.xz`, and the Halium initramfs `dynparts` release.
+For locating these inputs, use the UBports
+`ubuntu-touch-rootfs/ubports%252Ffocal` job's
+`ubuntu-touch-hybris-rootfs-arm64.tar.gz` (not the android9plus rootfs), the
+`generic_arm64/halium-11.0` job's `halium_halium_arm64.tar.xz`, and the Halium
+initramfs `dynparts` release.
 Resolve a **specific build/release URL** and record its trusted hash rather
 than relying on `lastSuccessfulBuild`. Downloads/vendor blobs are not supplied
 by this repository.
@@ -133,18 +134,25 @@ rootfs. This is a local development image, not a signed OTA/update channel.
 
 ### GitHub Actions and checks
 
-Run **Actions → Halium 11 images → Run workflow**, supplying HTTPS URLs and
-trusted SHA256s for the three inputs. It builds using the same entry point
-and uploads images, device adaptation and checksums for 14 days. Pushes/PRs
+Run **Actions → Halium 11 images → Run workflow**; no URLs or hashes are required.
+The workflow has baked-in HTTPS URLs for the Focal arm64 **hybris** rootfs
+(build 389), Halium 11 generic arm64 adaptation (build 991), and dynparts arm64
+ramdisk release. It rejects failed or empty downloads and computes SHA256s in
+the runner, exporting them to satisfy `./build.sh`'s required variables.
+These hashes are not independently trusted expected hashes and do **not**
+authenticate the downloads; local builds should still use trusted hashes as
+described above. It builds using the same entry point and uploads images,
+device adaptation and checksums for 14 days. Pushes/PRs
 run shell checks and small fixture-based packaging/ext4 tests, without
 downloading firmware or compiling a kernel.
 
 Local checks:
 
 ```bash
-bash -n build.sh package-device.sh build-rootfs.sh deviceinfo tests/build-flow.sh
-shellcheck build.sh package-device.sh build-rootfs.sh tests/build-flow.sh
+bash -n build.sh package-device.sh build-rootfs.sh deviceinfo tests/build-flow.sh tests/workflow-download.sh
+shellcheck build.sh package-device.sh build-rootfs.sh tests/build-flow.sh tests/workflow-download.sh
 shellcheck overlay/system/usr/libexec/lxc-android-config/mount-halium-overlay
+bash tests/workflow-download.sh
 bash tests/build-flow.sh
 ```
 
