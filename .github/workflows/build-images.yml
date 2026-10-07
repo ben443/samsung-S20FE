@@ -9,7 +9,6 @@ on:
       - overlay/**
       - .github/workflows/build-images.yml
   workflow_dispatch:
-   
 
 permissions:
   contents: read
@@ -23,11 +22,12 @@ jobs:
           persist-credentials: false
       - name: Check shell scripts and device configuration
         run: |
-          bash -n build.sh package-device.sh build-rootfs.sh deviceinfo tests/build-flow.sh
+          bash -n build.sh package-device.sh build-rootfs.sh deviceinfo tests/build-flow.sh tests/workflow-download.sh
           bash -n overlay/system/usr/libexec/lxc-android-config/mount-halium-overlay
-          shellcheck build.sh package-device.sh build-rootfs.sh tests/build-flow.sh \
+          shellcheck build.sh package-device.sh build-rootfs.sh tests/build-flow.sh tests/workflow-download.sh \
             overlay/system/usr/libexec/lxc-android-config/mount-halium-overlay
           ./build.sh --help
+          bash tests/workflow-download.sh
       - name: Test module packaging and rootfs assembly
         run: |
           sudo apt-get update
@@ -54,32 +54,27 @@ jobs:
             bc bison build-essential ca-certificates cpio curl e2fsprogs \
             fakeroot flex git kmod libssl-dev libtinfo5 lz4 python2 python3 unzip xz-utils
           sudo ln -sf /usr/bin/python2 /usr/local/bin/python
-      - name: Download checksum-verified inputs
+      - name: Download inputs and compute checksums
         env:
-          ROOTFS_URL: ${{ inputs.rootfs_url }}
-          ROOTFS_SHA256: ${{ inputs.rootfs_sha256 }}
-          HALIUM_URL: ${{ inputs.halium_url }}
-          HALIUM_SHA256: ${{ inputs.halium_sha256 }}
-          RAMDISK_URL: ${{ inputs.ramdisk_url }}
-          RAMDISK_SHA256: ${{ inputs.ramdisk_sha256 }}
+          ROOTFS_URL: https://ci.ubports.com/job/ubuntu-touch-rootfs/job/ubports%252Ffocal/389/artifact/ubuntu-touch-hybris-rootfs-arm64.tar.gz
+          HALIUM_URL: https://ci.ubports.com/job/UBportsCommunityPortsJenkinsCI/job/ubports%252Fporting%252Fcommunity-ports%252Fjenkins-ci%252Fgeneric_arm64/job/halium-11.0/991/artifact/halium_halium_arm64.tar.xz
+          RAMDISK_URL: https://github.com/halium/initramfs-tools-halium/releases/download/dynparts/initrd.img-touch-arm64
         run: |
+          set -euo pipefail
           mkdir -p inputs
           for kind in ROOTFS HALIUM RAMDISK; do
             url="${kind}_URL"
-            hash="${kind}_SHA256"
-            [[ "${!hash}" =~ ^[[:xdigit:]]{64}$ ]]
             curl --fail --location --retry 3 --proto '=https' --proto-redir '=https' \
               "${!url}" -o "inputs/$kind"
-            printf '%s  %s\n' "${!hash}" "inputs/$kind" | sha256sum --check
+            test -s "inputs/$kind"
+            hash="$(sha256sum "inputs/$kind" | cut -d' ' -f1)"
+            printf '%s_SHA256=%s\n' "$kind" "$hash" >> "$GITHUB_ENV"
           done
       - name: Build kernel, boot image, adaptation and Focal rootfs
         env:
           ROOTFS_ARCHIVE: inputs/ROOTFS
-          ROOTFS_SHA256: ${{ inputs.rootfs_sha256 }}
           HALIUM_ARCHIVE: inputs/HALIUM
-          HALIUM_SHA256: ${{ inputs.halium_sha256 }}
           RAMDISK_ARCHIVE: inputs/RAMDISK
-          RAMDISK_SHA256: ${{ inputs.ramdisk_sha256 }}
         run: ./build.sh
       - name: Upload images and adaptation archive
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
