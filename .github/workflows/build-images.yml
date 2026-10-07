@@ -9,31 +9,7 @@ on:
       - overlay/**
       - .github/workflows/build-images.yml
   workflow_dispatch:
-    inputs:
-      rootfs_url:
-        description: Immutable URL of Ubuntu Touch Focal arm64 rootfs tar.gz
-        required: true
-        type: string
-      rootfs_sha256:
-        description: Trusted SHA256 of the Focal rootfs
-        required: true
-        type: string
-      halium_url:
-        description: Immutable URL of Halium 11 generic arm64 tar.xz
-        required: true
-        type: string
-      halium_sha256:
-        description: Trusted SHA256 of the Halium 11 generic archive
-        required: true
-        type: string
-      ramdisk_url:
-        description: Immutable URL of Halium dynparts arm64 gzip initrd
-        required: true
-        type: string
-      ramdisk_sha256:
-        description: Trusted SHA256 of the Halium initrd
-        required: true
-        type: string
+   
 
 permissions:
   contents: read
